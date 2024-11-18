@@ -10,7 +10,7 @@ from langgraph.graph import START, StateGraph, MessagesState, END
 
 # TODO: This whole thing should be in a function that takes in the conversation as a string and returns the winner of the argument
 
-def result(person1:dict, person2:dict, conversation:str=""):
+async def result(person1:dict, person2:dict, conversation:str=""):
     """
     Inputs-
         person1 {'name':'', 'context':''}
