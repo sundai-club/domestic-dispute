@@ -7,10 +7,12 @@ from langchain_openai import ChatOpenAI
 from models import ArgumentResult, ArgumentState
 from pydantic import BaseModel, field_validator, ValidationError
 from langgraph.graph import START, StateGraph, MessagesState, END
+from langchain_core.output_parsers import PydanticOutputParser
+from models import ArgumentResult, ArgumentState, DisputeRequest
 
 # TODO: This whole thing should be in a function that takes in the conversation as a string and returns the winner of the argument
 
-async def result(person1:dict, person2:dict, conversation:str=""):
+def result(person1:dict, person2:dict, conversation:str=""):
     """
     Inputs-
         person1 {'name':'', 'context':''}
@@ -48,10 +50,17 @@ async def result(person1:dict, person2:dict, conversation:str=""):
     tonal_judge_msg = SystemMessage(content=open(Path(__file__).parent /  "tonal_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
     count_judge_msg = SystemMessage(content=open(Path(__file__).parent /  "count_judge_msg.txt").read())
     personal_attack_judge_msg = SystemMessage(content=open((Path(__file__).parent /  "personal_attack_judge_msg.txt")).read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    final_arbiter_msg = SystemMessage(content=open(Path(__file__).parent / "final_arbiter_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
+    final_arbiter_msg = SystemMessage(
+        content=open(Path(__file__).parent / "final_arbiter_msg.txt").read().format(
+            context1=person1["context"], 
+            context2=person2["context"], 
+            person1=person1["name"], 
+            person2=person2["name"]
+        )
+    )
 
     # Node
-    def distributor(state: MessagesState):
+    def distributor(state: MessagesState):     
         # print("---distributor---")
         return {"messages": [llm.invoke([distributor_msg] + state["messages"])]}
 
@@ -76,10 +85,40 @@ async def result(person1:dict, person2:dict, conversation:str=""):
         return {"messages": [llm.invoke([personal_attack_judge_msg] + state["messages"])]}
 
     # Node
-    def final_arbiter(state: MessagesState):
+    
+    #def final_arbiter(state: MessagesState):
         # print("---final arbiter---")
-        return {"messages": [llm.invoke([final_arbiter_msg] + state["messages"])]}
+    #   return {"messages": [llm.invoke([final_arbiter_msg] + state["messages"])]}
 
+
+    
+    parser = PydanticOutputParser(pydantic_object=ArgumentResult)
+    def final_arbiter(state: MessagesState):
+        response = llm.invoke([final_arbiter_msg] + state["messages"])
+        try:
+            # Extract JSON content from markdown code blocks if present
+            content = response.content
+            if "```" in content:
+                # Find content between ```json and ``` markers
+                import re
+                json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
+                content = json_match.group(1) if json_match else content
+            
+            json_response = json.loads(content.strip())
+            complete_request = {
+                "text": response.content,
+                "party_one_name": person1["name"],
+                "party_two_name": person2["name"],
+                "context1": person1["context"],
+                "context2": person2["context"],
+                **json_response
+            }
+            parsed_response = parser.parse(json.dumps(complete_request))
+            return {"messages": [AIMessage(content=parsed_response.model_dump_json())]}
+        except Exception as e:
+            print(f"Parsing error: {e}")
+            print(f"Raw response: {response.content}")
+            raise ValueError(f"Failed to parse final arbiter response: {e}")
     # Build graph
     builder = StateGraph(MessagesState)
 
@@ -118,7 +157,7 @@ async def result(person1:dict, person2:dict, conversation:str=""):
         output = result[-1].content
         json_output = json.loads(output)
         validated_output = ArgumentResult(**json_output)
-        return output
+        return validated_output
         
     except json.JSONDecodeError:
         print(output)
@@ -167,4 +206,4 @@ laura = {
     "context":"Laura had spent the morning organizing old family photo albums, feeling nostalgic about the years gone by and slightly melancholic about how their quiet house used to be filled with children's laughter. The peace lily was a housewarming gift from their daughter Sarah when she moved out ten years ago."
 }
 
-print(result(maya, arjun, open(Path(__file__).parent /"sample_argument.txt", "r", encoding="utf-8").read()))
+#print(result(maya, arjun, open(Path(__file__).parent /"sample_argument.txt", "r", encoding="utf-8").read()))

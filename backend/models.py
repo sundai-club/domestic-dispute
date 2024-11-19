@@ -1,5 +1,8 @@
 from pydantic import BaseModel, field_validator, ValidationError
 from typing import Dict, List, Union, Optional
+from sqlalchemy import Column, Integer, String, JSON, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+import datetime
 
 class ArgumentState(BaseModel):
     name1: str
@@ -24,14 +27,14 @@ class ArgumentResult(BaseModel):
 
     @field_validator('winner_logical_score')
     @classmethod
-    def validate_logical_score(cls, value):
+    def validate_winner_logical_score(cls, value):
         if not 0 <= value <= 100:
             raise ValueError("Logical score must be between 0 and 100")
         return value
     
     @field_validator('loser_logical_score')
     @classmethod
-    def validate_logical_score(cls, value):
+    def validate_loser_logical_score(cls, value):
         if not 0 <= value <= 100:
             raise ValueError("Logical score must be between 0 and 100")
         return value
