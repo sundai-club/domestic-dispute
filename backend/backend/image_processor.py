@@ -149,13 +149,22 @@ def extract_text_with_metadata(paths):
     """
     Extract text from images, combine with metadata, and stitch together chronologically
     Args:
-        paths: List of image paths
+        paths: List of image paths (now relative to backend/images)
     Returns:
         Stitched conversation text
     """
+    # Convert relative paths to absolute paths
+    base_path = Path(__file__).parent / "images"
+    absolute_paths = [str(base_path / Path(path)) for path in paths]
+    
+    # Verify all files exist
+    for path in absolute_paths:
+        if not Path(path).exists():
+            raise FileNotFoundError(f"Image file not found: {path}")
+    
     # First pass: Extract text and metadata from each image
     image_data = []
-    for path in paths:
+    for path in absolute_paths:
         creation_time = get_image_creation_time(path)
         base64_image = encode_image(path)
         
@@ -203,4 +212,4 @@ def extract_text_with_metadata(paths):
     final_response = llm.invoke([context_message])
     return final_response.content
 
-print(extract_text_with_metadata(["/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0145.PNG", "/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0144.PNG"]))
+print(extract_text_with_metadata(["IMG_0145.PNG", "IMG_0144.PNG"]))

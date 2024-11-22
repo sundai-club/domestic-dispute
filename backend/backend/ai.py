@@ -163,20 +163,3 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
 def result(person1:dict, person2:dict, conversation:str=""):
     return asyncio.run(async_result(person1, person2, conversation))
 
-
-
-# Example usage:
-# paths = [
-#     "/images/IMG_0138.PNG",
-#     "/images/IMG_0139.PNG"
-# ]
-# conversation = extract_text(paths)
-    
-
-
-#extract_multiple_text(sort_images_chronologically([
-#  "/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0144.PNG", 
-#  "/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0145.PNG"
-#]))
-#extract_text("/Users/seanklein/Projects/Github/domestic-dispute/backend/images/IMG_0138.PNG")
-#print(result(maya, arjun, open(Path(__file__).parent /"sample_argument.txt", "r", encoding="utf-8").read()))
