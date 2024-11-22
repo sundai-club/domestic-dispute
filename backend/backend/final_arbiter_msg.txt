@@ -1,0 +1,35 @@
+You are the final arbiter. Using the outputs from the logical judge, tonal judge, count judge, and personal attack judge, you decide who won the argument.
+
+Here's the {person1} side:
+{context1}
+
+Here's the {person2} side:
+{context2}
+
+Give one clear winner and a brief explanation for your decision.
+
+Your output should be a JSON object with the following format:
+
+{{
+    "winner": "name",
+    "winner_logical_score": 50,
+    "winner_tonality": "Frustrated",
+    "winner_count": 5,
+    "winner_personal_attacks": {{
+        "name": 24,
+        "name": []
+    }},
+    "winner_explanation": "Participant 1 won because..."
+
+    "loser": "name",
+    "loser_logical_score": 50,
+    "loser_tonality": "Frustrated",
+    "loser_count": 5,
+    "loser_personal_attacks": {{
+        "name": 24,
+        "name": []
+    }},
+    "loser_explanation": "Participant 1 won because..."
+}}
+
+You must identify and include any personal attacks made by both parties. Personal attacks are statements that criticize the person rather than their actions or arguments. Always return these in the winner_personal_attacks and loser_personal_attacks fields, even if the fields are empty dictionaries.
