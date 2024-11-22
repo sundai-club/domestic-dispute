@@ -14,7 +14,8 @@ from langchain_core.output_parsers import PydanticOutputParser
 from models import ArgumentResult, ArgumentState, DisputeRequest
 from langchain_core.utils.function_calling import convert_to_openai_function
 from langchain_community.document_loaders.image import UnstructuredImageLoader
- 
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 # TODO: This whole thing should be in a function that takes in the conversation as a string and returns the winner of the argument
 load_dotenv()
@@ -45,18 +46,7 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
         messages.append(HumanMessage(content=msg))
 
     # Load environment variables
-    load_dotenv()
-
-    #def _set_env(var: str):
-   #     if not os.environ.get(var):
-            #os.environ[var] = getpass.getpass(f"{var}: ")
-
-  # # _set_env("OPENAI_API_KEY")
-    #_set_env("LANGCHAIN_API_KEY")
-   # os.environ["LANGCHAIN_TRACING_V2"] = "true"
-   # os.environ["LANGCHAIN_PROJECT"] = "langchain-academy"
-
-    
+    #load_dotenv()
     # Define LLM with bound tools
     llm = ChatOpenAI(model="gpt-4o-2024-11-20")
     # llm_with_tools = llm.bind_tools(tools)
@@ -184,15 +174,6 @@ def encode_image(image_path):
 
 def extract_text(path):
     image_path = Path(__file__).parent / path
-    #load_dotenv()
-    #def _set_env(var: str):
-    #    if not os.environ.get(var):
-    #        os.environ[var] = getpass.getpass(f"{var}: ")
-    #_set_env("OPENAI_API_KEY")
-    #_set_env("LANGCHAIN_API_KEY")
-    #os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    #os.environ["LANGCHAIN_PROJECT"] = "langchain-academy"
-
     base64_image = encode_image(image_path)
     llm = ChatOpenAI(
         model="gpt-4o-2024-11-20",
