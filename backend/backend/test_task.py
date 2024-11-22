@@ -12,7 +12,7 @@ try:
         party_two_name="Arjun",
         context1="my boyfriend doesn't appreciate my achievements",
         context2="I'm just so tired all the time",
-        conversation=open(Path(__file__).parent /"sample_argument.txt", "r", encoding="utf-8").read(),
+        conversation=open(Path(__file__).parent /"sample_arguments" /"sample_argument.txt", "r", encoding="utf-8").read(),
         status="pending"
     )
     db.add(dispute)

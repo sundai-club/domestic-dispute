@@ -63,12 +63,12 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
 
     # System messages
     distributor_msg = SystemMessage(content="You are the distributor of messages. You distribute messages to the logical judge, tonal judge, count judge, and personal attack judge.")
-    logical_judge_msg = SystemMessage(content=open(Path(__file__).parent /"logical_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    tonal_judge_msg = SystemMessage(content=open(Path(__file__).parent /  "tonal_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    count_judge_msg = SystemMessage(content=open(Path(__file__).parent /  "count_judge_msg.txt").read())
-    personal_attack_judge_msg = SystemMessage(content=open((Path(__file__).parent /  "personal_attack_judge_msg.txt")).read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
+    logical_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "logical_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
+    tonal_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "tonal_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
+    count_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "count_judge_msg.txt").read())
+    personal_attack_judge_msg = SystemMessage(content=open((Path(__file__).parent / "instructions" / "personal_attack_judge_msg.txt")).read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
     final_arbiter_msg = SystemMessage(
-        content=open(Path(__file__).parent / "final_arbiter_msg.txt").read().format(
+        content=open(Path(__file__).parent / "instructions" / "final_arbiter_msg.txt").read().format(
             context1=person1["context"], 
             context2=person2["context"], 
             person1=person1["name"], 

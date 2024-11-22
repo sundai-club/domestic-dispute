@@ -8,7 +8,7 @@ def test_store_dispute():
     url = "http://localhost:8000/api/store-dispute"
     
     # Read sample argument
-    conversation = open(Path(__file__).parent / "sample_argument.txt", "r", encoding="utf-8").read()
+    conversation = open(Path(__file__).parent /"sample_arguments" / "sample_argument.txt", "r", encoding="utf-8").read()
     
     # Prepare payload
     payload = {
