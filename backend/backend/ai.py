@@ -16,6 +16,7 @@ from langchain_core.utils.function_calling import convert_to_openai_function
 from langchain_community.document_loaders.image import UnstructuredImageLoader
 from PIL import Image
 from PIL.ExifTags import TAGS
+from image_processor import sort_images_chronologically
 
 # TODO: This whole thing should be in a function that takes in the conversation as a string and returns the winner of the argument
 load_dotenv()
@@ -91,12 +92,6 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
         # print("---personal attack judge---")
         return {"messages": [llm.invoke([personal_attack_judge_msg] + state["messages"])]}
 
-    # Node
-    
-    #def final_arbiter(state: MessagesState):
-        # print("---final arbiter---")
-    #   return {"messages": [llm.invoke([final_arbiter_msg] + state["messages"])]}
-
     argument_result_schema = {
         "name": "get_argument_result",
         "description": "Get the final result of the argument analysis",
@@ -168,35 +163,20 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
 def result(person1:dict, person2:dict, conversation:str=""):
     return asyncio.run(async_result(person1, person2, conversation))
 
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
 
-def extract_text(path):
-    image_path = Path(__file__).parent / path
-    base64_image = encode_image(image_path)
-    llm = ChatOpenAI(
-        model="gpt-4o-2024-11-20",
-        max_tokens=1024,
-    )
+
+# Example usage:
+# paths = [
+#     "/images/IMG_0138.PNG",
+#     "/images/IMG_0139.PNG"
+# ]
+# conversation = extract_text(paths)
     
-    message = HumanMessage(
-        content=[
-            {"type": "text", "text": "Transribe these iphone screenshots. Make sure it is in the format of a conversation between two people. with each message on a new line and beginnign with the name. Include emojis.The name of party 2 is at the top of the text. The name of party 2 is unknown and you should just put in a placeholder of 'sender'."},
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{base64_image}"
-                }
-            }
-        ]
-    )
-    
-    response = llm.invoke([message])
-    print(response.content)
-    return response.content
 
 
-
+#extract_multiple_text(sort_images_chronologically([
+#  "/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0144.PNG", 
+#  "/Users/seanklein/Projects/Github/homewrecker_ai/backend/backend/images/IMG_0145.PNG"
+#]))
 #extract_text("/Users/seanklein/Projects/Github/domestic-dispute/backend/images/IMG_0138.PNG")
 #print(result(maya, arjun, open(Path(__file__).parent /"sample_argument.txt", "r", encoding="utf-8").read()))
