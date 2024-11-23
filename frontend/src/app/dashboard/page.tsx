@@ -136,7 +136,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 text-white">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 animate-pulse">Dispute Analysis Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-8 animate-pulse">Dispute Analysis Dashboard</h1>
         
         {!showReport ? (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
@@ -231,19 +231,98 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
-            <h2 className="text-3xl font-bold mb-6 animate-pulse">🏆 Final Verdict</h2>
-            <div className="bg-white/20 rounded-lg p-6">
+            <h2 className="text-5xl font-bold mb-6 animate-pulse">🏆 Final Verdict</h2>
+            <div className="bg-white/20 rounded-lg p-6 mb-4">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-yellow-300 mb-2">
-                  {analysisResult?.winner || partyOneName} Wins
-                </h3>
-                <div className="text-lg leading-relaxed">
-                  <p className="mb-4 text-white/90">
-                    {analysisResult?.winner_explanation || `After analyzing the dispute between ${partyOneName} and ${partyTwoName}, we've determined that ${analysisResult?.winner || partyOneName} has the stronger position.`}
-                  </p>
+                <div className="flex justify-center items-center">
+                  <h3 className="text-4xl font-bold text-yellow-300 mb-2">
+                    {analysisResult?.winner || partyOneName} Wins
+                  </h3>
                 </div>
               </div>
             </div>
+
+
+              
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              
+              {/* Left Column */}
+              <div className="space-y-4">
+                <div className="bg-white/20 rounded-lg p-4">
+                  <h3 className="text-4xl flex justify-center font-bold text-yellow-300 mb-4"> 👑 {analysisResult?.winner} 👑</h3>
+                  <div className="space-y-3">
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Winner Explanation:</span> {analysisResult?.winner_explanation}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Logical Score:</span> {analysisResult?.winner_logical_score}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Tonality:</span> {analysisResult?.winner_tonality}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Count:</span> {analysisResult?.winner_count}</p>
+                    </div>
+                    
+                    {/* Winner's Personal Attacks */}
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl font-semibold mb-2">Top Personal Attacks:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {analysisResult?.winner_personal_attacks && 
+                         (Object.values(analysisResult.winner_personal_attacks)[0] as string[])
+                          ?.slice(0, 4)
+                          ?.map((attack: string, index: number) => (
+                            <li key={index} className="text-lg">{attack}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                <div className="bg-white/20 rounded-lg p-4">
+                  <h3 className="text-4xl flex justify-center font-bold text-yellow-300 mb-4"> 🛋️ {analysisResult?.loser} 🛋️</h3>
+                  <div className="space-y-3">
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Loser Explanation:</span> {analysisResult?.loser_explanation}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Logical Score:</span> {analysisResult?.loser_logical_score}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Tonality:</span> {analysisResult?.loser_tonality}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Count:</span> {analysisResult?.loser_count}</p>
+                    </div>
+
+                    {/* Loser's Personal Attacks */}
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl font-semibold mb-2">Top Personal Attacks:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {analysisResult?.loser_personal_attacks && 
+                         (Object.values(analysisResult.winner_personal_attacks)[0] as string[])
+                         ?.slice(0, 4)
+                         ?.map((attack: string, index: number) => (
+                            <li key={index} className="text-lg">{attack}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Full JSON Output */}
+            {/*<div className="text-lg leading-relaxed">
+              <pre className="mb-4 text-white/90 whitespace-pre-wrap">
+                {JSON.stringify(analysisResult, null, 2)}
+              </pre>
+            </div>*/}
+
             <Link
               href="/dashboard"
               className="mt-6 inline-block bg-yellow-400 text-red-700 px-6 py-3 rounded-full text-xl font-bold hover:bg-yellow-300 transition-transform transform hover:scale-105"
@@ -252,7 +331,7 @@ export default function Dashboard() {
             </Link>
           </div>
         )}
-        
+
         {isAnalyzing && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 text-center">
