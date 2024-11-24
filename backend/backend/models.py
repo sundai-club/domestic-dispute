@@ -12,11 +12,13 @@ class HWInputState(BaseModel):
     name1: str
     name2: str
     conversation: str
+    context: Optional[str] = None
 
 class HWOverallState(BaseModel):
     name1: str
     name2: str
     conversation: str
+    context: Optional[str] = None
     name1_logical_score: Optional[int] = None
     name1_logical_explanation: Optional[str] = None
     name2_logical_score: Optional[int] = None

@@ -19,6 +19,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from image_processor import sort_images_chronologically
 from models import OverreactionInputState, OverreactionOutput
+from typing import Optional
 
 # Load environment variables
 load_dotenv()
@@ -32,7 +33,7 @@ _set_env("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "langchain-academy"
 
-async def async_result(person1:str, person2:str, conversation:str=""):
+async def async_result(person1: str, person2: str, conversation: str = "", context: Optional[str] = None):
     """
     Inputs-
         person1 {'name':'', 'context':''}
@@ -62,9 +63,11 @@ async def async_result(person1:str, person2:str, conversation:str=""):
 
     # Node
     def logical_judge(state: HWOverallState):
+        context_str = f"\nContext of the dispute:\n{state.context}" if state.context else ""
         sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "logical_judge_msg.txt").read().format(
             name1 = state.name1,
-            name2 = state.name2
+            name2 = state.name2,
+            context = context_str
         ))
 
         llm_output = llm.with_structured_output(LogicalOutput).invoke([sys_msg] + [state.conversation])
@@ -76,14 +79,17 @@ async def async_result(person1:str, person2:str, conversation:str=""):
         state.name1_logical_explanation = llm_output.name1_logical_explanation
         state.name2_logical_score = llm_output.name2_logical_score
         state.name2_logical_explanation = llm_output.name2_logical_explanation
+        state.context = None
 
         return state
 
     # Node
     def tonal_judge(state: HWOverallState):
+        context_str = f"\nContext of the dispute:\n{state.context}" if state.context else ""
         sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "tonal_judge_msg.txt").read().format(
             name1 = state.name1,
-            name2 = state.name2
+            name2 = state.name2,
+            context = context_str
         ))
 
         llm_output = llm.with_structured_output(TonalOutput).invoke([sys_msg] + [state.conversation])
@@ -95,14 +101,17 @@ async def async_result(person1:str, person2:str, conversation:str=""):
         state.name1_tonality_explanation = llm_output.name1_tonality_explanation
         state.name2_tonality = llm_output.name2_tonality
         state.name2_tonality_explanation = llm_output.name2_tonality_explanation
+        state.context = None
 
         return state
 
     # Node
     def volume_judge(state: HWOverallState):
+        context_str = f"\nContext of the dispute:\n{state.context}" if state.context else ""
         sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "volume_judge_msg.txt").read().format(
             name1 = state.name1,
-            name2 = state.name2
+            name2 = state.name2,
+            context = context_str
         ))
 
         llm_output = llm.with_structured_output(VolumeOutput).invoke([sys_msg] + [state.conversation])
@@ -114,14 +123,17 @@ async def async_result(person1:str, person2:str, conversation:str=""):
         state.name2_word_count = llm_output.name2_word_count
         state.name1_volume_percentage = (llm_output.name1_word_count / (llm_output.name1_word_count + llm_output.name2_word_count)) * 100
         state.name2_volume_percentage = (llm_output.name2_word_count / (llm_output.name1_word_count + llm_output.name2_word_count)) * 100
+        state.context = None
 
         return state
 
     # Node
     def personal_attack_judge(state: HWOverallState):
+        context_str = f"\nContext of the dispute:\n{state.context}" if state.context else ""
         sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "personal_attack_judge_msg.txt").read().format(
             name1 = state.name1,
-            name2 = state.name2
+            name2 = state.name2,
+            context = context_str
         ))
 
         llm_output = llm.with_structured_output(PersonalAttackOutput).invoke([sys_msg] + [state.conversation])
@@ -129,6 +141,7 @@ async def async_result(person1:str, person2:str, conversation:str=""):
         state.name1 = None
         state.name2 = None
         state.conversation = None
+        state.context = None
         state.name1_personal_attacks = llm_output.name1_personal_attacks
         state.name2_personal_attacks = llm_output.name2_personal_attacks
 
@@ -136,9 +149,11 @@ async def async_result(person1:str, person2:str, conversation:str=""):
 
     # Node
     def final_arbiter(state: HWOverallState) -> FinalOutputState:
+        context_str = f"\nContext of the dispute:\n{state.context}" if state.context else ""
         sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "final_arbiter_msg.txt").read().format(
             name1 = state.name1,
-            name2 = state.name2
+            name2 = state.name2,
+            context = context_str
         ))
 
         if isinstance(llm, ChatOpenAI):
