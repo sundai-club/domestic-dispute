@@ -22,12 +22,14 @@ export default function Dashboard() {
     setIsAnalyzing(true)
     try {
       const response = await axios.post('/api/analyze-dispute', {
-        text,
-        party_one_name: partyOneName,
-        party_two_name: partyTwoName,
-        context1,
-        context2,
+        name1: partyOneName,
+        name2: partyTwoName,
+        conversation: text,
       })
+
+      // Log the raw response
+      console.log('Raw response:', response)
+      console.log('Response data:', response.data)
 
       let analysis;
       try {
@@ -123,7 +125,7 @@ export default function Dashboard() {
       // Set analysis result
       setAnalysisResult({
         winner: data.result.winner,
-        winner_explanation: data.result.winner_explanation
+        winner_explanation: data.result.winner.explanation
       })
       
       setShowReport(true)
@@ -133,65 +135,106 @@ export default function Dashboard() {
     }
   }
 
+  const handleReset = () => {
+    // Reset all form states
+    setText('');
+    setPartyOneName('');
+    setPartyTwoName('');
+    setContext1('');
+    setContext2('');
+    setAnalysisResult(null);
+    setDisputeId(null);
+    setDisputeResult(null);
+    // Hide the report view
+    setShowReport(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 text-white">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 animate-pulse">Dispute Analysis Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-8 animate-pulse">Dispute Analysis Dashboard</h1>
         
         {!showReport ? (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Upload or Paste Your Dispute</h2>
+            <h2 className="text-5xl font-semibold mb-4">Upload or Paste Your Dispute</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div className="bg-white/20 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors">
-                  <Upload className="mr-2" />
-                  <span>Upload Text File</span>
-                </div>
-                <div className="bg-white/20 rounded-lg p-4">
-                  <label htmlFor="dispute-text" className="block mb-2">Or paste your text here:</label>
+                <div className="bg-white/20 rounded-lg p-4 space-y-2">
+                  <label htmlFor="dispute-text" className="text-2xl block mb-2 flex items-center justify-center">Dispute Text</label>
                   <textarea
                     id="dispute-text"
-                    className="w-full h-32 bg-white/10 rounded p-2 text-white placeholder-white/50"
+                    className="text-lg w-full h-32 bg-white/10 rounded p-2 text-white placeholder-white/50"
                     placeholder="Type or paste your dispute text here..."
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                   ></textarea>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".txt"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 1000000) { // 1MB limit
+                          alert('File is too large. Please upload a file smaller than 1MB.');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          const text = e.target?.result;
+                          if (typeof text === 'string') {
+                            setText(text);
+                          }
+                        };
+                        reader.onerror = () => {
+                          alert('Error reading file');
+                        };
+                        reader.readAsText(file);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="text-xl bg-white/20 rounded-lg p-4 flex items-center justify-center hover:bg-white/30 transition-colors">
+                    <Upload className="mr-2" />
+                    <span>Upload Text File</span>
+                  </div>
+                </div>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="bg-white/20 rounded-lg p-4">
-                  <label htmlFor="party1" className="block mb-2">Party 1 Context:</label>
+                  <label htmlFor="party1" className="text-2xl block mb-2 flex items-center justify-center">Party 1</label>
                   <input
                     id="party1"
                     type="text"
-                    className="w-full bg-white/10 rounded p-2 text-white placeholder-white/50 mb-2"
+                    className="text-lg w-full bg-white/10 rounded p-2 text-white placeholder-white/50 mb-2"
                     placeholder="Name"
                     value={partyOneName}
                     onChange={(e) => setPartyOneName(e.target.value)}
                   />
-                  <textarea
+                  {/*<textarea
                     className="w-full h-24 bg-white/10 rounded p-2 text-white placeholder-white/50"
                     placeholder="Explain your point of view..."
                     value={context1}
                     onChange={(e) => setContext1(e.target.value)}
-                  ></textarea>
+                  ></textarea>*/}
                 </div>
                 <div className="bg-white/20 rounded-lg p-4">
-                  <label htmlFor="party2" className="block mb-2">Party 2 Context:</label>
+                  <label htmlFor="party2" className="text-2xl block mb-2 flex items-center justify-center">Party 2</label>
                   <input
                     id="party2"
                     type="text"
-                    className="w-full bg-white/10 rounded p-2 text-white placeholder-white/50 mb-2"
+                    className="text-lg w-full bg-white/10 rounded p-2 text-white placeholder-white/50 mb-2"
                     placeholder="Name"
                     value={partyTwoName}
                     onChange={(e) => setPartyTwoName(e.target.value)}
                   />
-                  <textarea
+                  {/*<textarea
                     className="w-full h-24 bg-white/10 rounded p-2 text-white placeholder-white/50"
                     placeholder="Explain your point of view..."
                     value={context2}
                     onChange={(e) => setContext2(e.target.value)}
-                  ></textarea>
+                  ></textarea>*/}
                 </div>
               </div>
             </div>
@@ -231,28 +274,129 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
-            <h2 className="text-3xl font-bold mb-6 animate-pulse">🏆 Final Verdict</h2>
-            <div className="bg-white/20 rounded-lg p-6">
+            <h2 className="text-5xl font-bold mb-6 animate-pulse">🏆 Final Verdict 🏆</h2>
+            <div className="bg-white/20 rounded-lg p-6 mb-4">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-yellow-300 mb-2">
-                  {analysisResult?.winner || partyOneName} Wins
-                </h3>
-                <div className="text-lg leading-relaxed">
-                  <p className="mb-4 text-white/90">
-                    {analysisResult?.winner_explanation || `After analyzing the dispute between ${partyOneName} and ${partyTwoName}, we've determined that ${analysisResult?.winner || partyOneName} has the stronger position.`}
-                  </p>
+                <div className="flex justify-center items-center">
+                  <h3 className="text-4xl font-bold text-white-300 mb-2">
+                    {analysisResult?.winner?.name || partyOneName} is declared the winner!
+                  </h3>
                 </div>
               </div>
             </div>
-            <Link
-              href="/dashboard"
+
+
+              
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              
+              {/* Left Column */}
+              <div className="space-y-4">
+                <div className="bg-white/20 rounded-lg p-4">
+                  <h3 className="text-4xl flex justify-center font-bold text-white-300 mb-4"> 👑 {analysisResult?.winner?.name} 👑</h3>
+                  <div className="space-y-3">
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Winner Explanation:</span> {analysisResult?.winner?.explanation}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Logical Score:</span> {analysisResult?.winner?.logical_score}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Tonality:</span> {analysisResult?.winner?.tonality}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl mb-2">
+                        <span className="font-bold">Volume:</span> {Math.round(analysisResult?.winner?.volume_percentage)}%
+                      </p>
+                      <div className="w-full bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-300 h-2.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${analysisResult?.winner?.volume_percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    {/* Winner's Personal Attacks */}
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl font-semibold mb-2">
+                        {analysisResult?.winner?.personal_attacks?.length > 0 
+                          ? "Top Personal Attacks:"
+                          : "No Personal Attacks 💖"}
+                      </p>
+                      {analysisResult?.winner?.personal_attacks?.length > 0 && (
+                        <ul className="list-disc pl-4 space-y-2">
+                          {analysisResult.winner.personal_attacks.slice(0, 4).map((attack: string, index: number) => (
+                            <li key={index} className="text-xl">{attack}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                <div className="bg-white/20 rounded-lg p-4">
+                  <h3 className="text-4xl flex justify-center font-bold text-white-300 mb-4"> 🛋️ {analysisResult?.loser?.name} 🛋️</h3>
+                  <div className="space-y-3">
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Loser Explanation:</span> {analysisResult?.loser?.explanation}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Logical Score:</span> {analysisResult?.loser?.logical_score}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl"><span className="font-bold">Tonality:</span> {analysisResult?.loser?.tonality}</p>
+                    </div>
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl mb-2">
+                        <span className="font-bold">Volume:</span> {Math.round(analysisResult?.loser?.volume_percentage)}%
+                      </p>
+                      <div className="w-full bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-300 h-2.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${analysisResult?.loser?.volume_percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Loser's Personal Attacks */}
+                    <div className="bg-white/10 rounded p-2">
+                      <p className="text-xl font-semibold mb-2">
+                        {analysisResult?.loser?.personal_attacks?.length > 0 
+                          ? "Top Personal Attacks:"
+                          : "No Personal Attacks 💖"}
+                      </p>
+                      {analysisResult?.loser?.personal_attacks?.length > 0 && (
+                        <ul className="list-disc pl-4 space-y-2">
+                          {analysisResult.loser.personal_attacks.slice(0, 4).map((attack: string, index: number) => (
+                            <li key={index} className="text-xl">{attack}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Full JSON Output */}
+            {/*<div className="text-lg leading-relaxed">
+              <pre className="mb-4 text-white/90 whitespace-pre-wrap">
+                {JSON.stringify(analysisResult, null, 2)}
+              </pre>
+            </div>*/}
+
+            <button
+              onClick={handleReset}
               className="mt-6 inline-block bg-yellow-400 text-red-700 px-6 py-3 rounded-full text-xl font-bold hover:bg-yellow-300 transition-transform transform hover:scale-105"
             >
               Settle Another Dispute
-            </Link>
+            </button>
           </div>
         )}
-        
+
         {isAnalyzing && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 text-center">
