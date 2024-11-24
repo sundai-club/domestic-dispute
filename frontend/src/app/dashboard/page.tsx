@@ -60,6 +60,45 @@ export default function Dashboard() {
     }
   }
 
+  const handleClearText = () => {
+    setText(''); // Clear conversation text
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+
+    // Append all selected files
+    Array.from(files).forEach((file) => {
+      if (file.size > 5000000) {
+        alert(`File "${file.name}" is too large. Please upload files smaller than 5MB.`);
+        return;
+      }
+      formData.append('files', file);
+    });
+
+    setIsLoading(true);
+
+    try {
+      // Call the API
+      const response = await axios.post('http://localhost:8000/api/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const { conversation } = response.data;
+
+      // Update the text area with the conversation text
+      setText(conversation || ''); // Set conversation text
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Failed to process the files. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleStoreDispute = async () => {
     setIsStoring(true)
     try {
@@ -160,44 +199,31 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="bg-white/20 rounded-lg p-4 space-y-2">
-                  <label htmlFor="dispute-text" className="text-2xl block mb-2 flex items-center justify-center">Dispute Text</label>
+                  <label htmlFor="dispute-text" className="text-2xl block mb-2 flex items-center justify-center">
+                    Dispute Text
+                  </label>
+                  {/* Conversation Text */}
                   <textarea
-                    id="dispute-text"
+                    id="conversation-text"
                     className="text-lg w-full h-32 bg-white/10 rounded p-2 text-white placeholder-white/50"
-                    placeholder="Type or paste your dispute text here..."
+                    placeholder="Paste text or upload screenshots..."
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => setText(e.target.value)} // Update state as user edits or deletes
                   ></textarea>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".txt"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 1000000) { // 1MB limit
-                          alert('File is too large. Please upload a file smaller than 1MB.');
-                          return;
-                        }
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          const text = e.target?.result;
-                          if (typeof text === 'string') {
-                            setText(text);
-                          }
-                        };
-                        reader.onerror = () => {
-                          alert('Error reading file');
-                        };
-                        reader.readAsText(file);
-                      }
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="text-xl bg-white/20 rounded-lg p-4 flex items-center justify-center hover:bg-white/30 transition-colors">
-                    <Upload className="mr-2" />
-                    <span>Upload Text File</span>
-                  </div>
+
+                  {/* File Upload */}
+                  <div className="relative ">
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="text-xl bg-white/20 rounded-lg p-4 flex items-center justify-center hover:bg-white/30 transition-colors">
+                      <Upload className="mr-2" />
+                      <span>Upload Screenshots</span>
+                    </div>
                 </div>
                 </div>
               </div>
@@ -243,23 +269,6 @@ export default function Dashboard() {
               className="mt-6 bg-yellow-400 text-red-700 px-6 py-3 rounded-full text-xl font-bold hover:bg-yellow-300 transition-transform transform hover:scale-105"
             >
             Analyze Dispute
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                console.log('Get Dispute button clicked');  // Debug log
-                handleGetDispute();
-              }}
-              className="mt-6 bg-green-400 text-white px-6 py-3 rounded-full text-xl font-bold"
-            >
-              Get Dispute Test
-            </button>
-
-            <button
-              onClick={handleStoreDispute}
-              className="mt-6 bg-blue-400 text-white px-6 py-3 rounded-full text-xl font-bold hover:bg-blue-300 transition-transform transform hover:scale-105"
-            >
-              Store Dispute
             </button>
             {/*
             <button
