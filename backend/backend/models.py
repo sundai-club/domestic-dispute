@@ -98,6 +98,7 @@ class OverreactionOutput(BaseModel):
     is_overreacting: bool
     confidence_score: int  # 0-100
     explanation: str
+    cognitive_distortions: str
     key_triggers: List[str]  # Specific phrases/moments that indicate overreaction
     suggested_responses: List[str]  # Alternative ways to respond
     emotional_state: str  # e.g., "Highly Emotional", "Slightly Agitated", "Reasonable"
