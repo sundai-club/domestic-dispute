@@ -12,8 +12,7 @@ class Dispute(Base):
     
     party_one_name = Column(String)
     party_two_name = Column(String)
-    context1 = Column(String)
-    context2 = Column(String)
+    context = Column(String, nullable=True)
     conversation = Column(String)
     
     result = Column(JSON, nullable=True)

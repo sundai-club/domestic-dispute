@@ -44,6 +44,7 @@ async def analyze_dispute(request: HWInputState):
             conversation=request.conversation,
             person1=request.name1,
             person2=request.name2,
+            context = request.context,
         )
         return analysis
     except Exception as e:
@@ -59,7 +60,7 @@ async def analyze_dispute(request: HWInputState):
         dispute = Dispute(
             party_one_name=request.party_one_name,
             party_two_name=request.party_two_name,
-            #context1=request.context1,
+            context=request.context,
             #context2=request.context2,
             conversation=request.text,
             status="pending"
@@ -164,7 +165,7 @@ async def store_overreaction(request: OverreactionInputState):
         dispute = Dispute(
             party_one_name=request.name,
             party_two_name="N/A",  # Single player mode
-            context1=request.context,  # Add context here
+            context=request.context,  # Add context here
             conversation=request.conversation,
             status="pending",
             analysis_type="overreaction"
