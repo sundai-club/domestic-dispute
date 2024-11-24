@@ -1,8 +1,7 @@
 "use client";
-import { useState } from 'react'
-import { Upload, FileText, User, BarChart, Loader } from 'lucide-react'
-import Link from 'next/link'
-import axios from 'axios' // Add axios import
+import axios from 'axios'; // Add axios import
+import { Upload } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false)
@@ -59,10 +58,6 @@ export default function Dashboard() {
       setIsAnalyzing(false)
     }
   }
-
-  const handleClearText = () => {
-    setText(''); // Clear conversation text
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
