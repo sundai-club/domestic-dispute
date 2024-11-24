@@ -17,6 +17,10 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isStoring, setIsStoring] = useState(false)
 
+  const STAGE = process.env.stage === null ? 'prod' : 'dev';
+  const BACKEND_URL = STAGE === 'prod' ? "https://domestic-dispute-199983032721.us-central1.run.app" 
+  : "http://localhost:8000"
+
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
     try {
@@ -78,7 +82,7 @@ export default function Dashboard() {
 
     try {
       // Call the API
-      const response = await axios.post('http://localhost:8000/api/upload-image', formData, {
+      const response = await axios.post(BACKEND_URL, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -97,7 +101,7 @@ export default function Dashboard() {
   const handleStoreDispute = async () => {
     setIsStoring(true)
     try {
-      const response = await fetch('http://localhost:8000/api/store-dispute', {
+      const response = await fetch(`${BACKEND_URL}/api/store-dispute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +144,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/dispute/${disputeId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/dispute/${disputeId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
