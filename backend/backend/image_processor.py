@@ -1,18 +1,14 @@
-from PIL import Image
-import cv2
-import numpy as np
-from PIL.ExifTags import TAGS
+import getpass
 import os
 from datetime import datetime
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-import base64
-from dotenv import load_dotenv
 from pathlib import Path
-from langchain_core.utils.function_calling import convert_to_openai_function
-from langchain_community.document_loaders.image import UnstructuredImageLoader
-import getpass
 from typing import List
+
+from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 load_dotenv()
 
