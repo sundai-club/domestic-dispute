@@ -86,3 +86,16 @@ class PersonalAttackOutput(BaseModel):
     name2: str
     name1_personal_attacks: List[str]
     name2_personal_attacks: List[str]
+
+class OverreactionInputState(BaseModel):
+    name: str
+    context : str
+    conversation: str
+
+class OverreactionOutput(BaseModel):
+    is_overreacting: bool
+    confidence_score: int  # 0-100
+    explanation: str
+    key_triggers: List[str]  # Specific phrases/moments that indicate overreaction
+    suggested_responses: List[str]  # Alternative ways to respond
+    emotional_state: str  # e.g., "Highly Emotional", "Slightly Agitated", "Reasonable"

@@ -2,13 +2,20 @@ from fastapi import FastAPI, Request, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
-from models import HWInputState
-from ai import result, async_result  # You'll implement this in ai.py
+from models import HWInputState, OverreactionInputState
+from ai import result, async_result, analyze_overreaction  # You'll implement this in ai.py
 from database import SessionLocal, Dispute, init_db  # Updated this line
-from tasks import process_dispute  # Add this import
+from tasks import process_dispute, process_overreaction  # Add this import
 import os
 import shutil
 from datetime import datetime
+from typing import List
+from pathlib import Path
+import io
+from PIL import Image
+from PIL.ExifTags import TAGS
+import base64
+from image_processor import extract_multiple_text
 
 import uvicorn
 app = FastAPI()
@@ -23,6 +30,8 @@ app.add_middleware(
 )
 
 init_db()
+
+UPLOAD_DIR = "images"
 
 @app.get("/")
 async def root():
@@ -83,28 +92,92 @@ async def get_dispute(dispute_id: int):
         db.close()
 
 @app.post("/api/upload-image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(files: List[UploadFile] = File(...)):
     try:
-        # Create images directory if it doesn't exist
-        os.makedirs("backend/images", exist_ok=True)
+        image_data = []
         
-        # Generate unique filename using timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_extension = os.path.splitext(file.filename)[1]
-        new_filename = f"image_{timestamp}{file_extension}"
-        
-        # Save the file
-        file_path = f"images/{new_filename}"
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        for file in files:
+            # Read file content
+            content = await file.read()
             
+            # Create PIL Image from bytes
+            img = Image.open(io.BytesIO(content))
+            
+            # Get creation time
+            creation_time = None
+            exif = img.getexif()
+            if exif:
+                for tag_id in exif:
+                    tag = TAGS.get(tag_id, tag_id)
+                    data = exif.get(tag_id)
+                    if tag == 'DateTime':
+                        creation_time = datetime.strptime(data, '%Y:%m:%d %H:%M:%S')
+                        break
+            
+            if not creation_time:
+                # If no EXIF timestamp, use current time
+                creation_time = datetime.now()
+            
+            # Convert image to base64
+            buffered = io.BytesIO()
+            img.save(buffered, format=img.format)
+            img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            
+            image_data.append({
+                "timestamp": creation_time,
+                "base64": img_base64,
+                "original_name": file.filename
+            })
+        
+        # Sort by timestamp
+        image_data.sort(key=lambda x: x["timestamp"])
+        
+        # Extract text from sorted images
+        conversation_text = extract_multiple_text([d["base64"] for d in image_data])
+        
         return {
-            "filename": new_filename,
-            "file_path": file_path,
-            "message": "Image uploaded successfully"
+            "message": f"Successfully processed {len(image_data)} images",
+            "conversation": conversation_text
         }
+        
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/analyze-overreaction")
+async def analyze_overreaction_endpoint(request: OverreactionInputState):
+    try:
+        analysis = await analyze_overreaction(
+            name=request.name,
+            context=request.context,
+            conversation=request.conversation
+        )
+        return analysis
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/store-overreaction")
+async def store_overreaction(request: OverreactionInputState):
+    db = SessionLocal()
+    try:
+        # Create overreaction analysis record
+        dispute = Dispute(
+            party_one_name=request.name,
+            party_two_name="N/A",  # Single player mode
+            context1=request.context,  # Add context here
+            conversation=request.conversation,
+            status="pending",
+            analysis_type="overreaction"
+        )
+        db.add(dispute)
+        db.commit()
+        db.refresh(dispute)
+        
+        # Start background task
+        process_overreaction.delay(dispute.id)
+        return {"message": "Analysis started", "dispute_id": dispute.id}
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     uvicorn.run(

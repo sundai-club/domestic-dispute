@@ -1,6 +1,6 @@
 from celery import Celery
 from database import SessionLocal, Dispute
-from ai import result
+from ai import result, analyze_overreaction
 import redis
 
 app = Celery('backend.tasks', broker='redis://localhost:6379/0')
@@ -28,6 +28,31 @@ def process_dispute(dispute_id: int):
             conversation=dispute.conversation
         )
         print(analysis)
+        dispute.result = analysis.model_dump()
+        dispute.status = "completed"
+        db.commit()
+
+    except Exception as e:
+        dispute.status = "failed"
+        dispute.error = str(e)
+        db.commit()
+    finally:
+        db.close()
+
+@app.task(name='backend.tasks.process_overreaction', time_limit=300)
+def process_overreaction(dispute_id: int):
+    db = SessionLocal()
+    try:
+        dispute = db.query(Dispute).filter(Dispute.id == dispute_id).first()
+        dispute.status = "processing"
+        db.commit()
+
+        analysis = analyze_overreaction(
+            name=dispute.party_one_name,
+            context=dispute.context1,
+            conversation=dispute.conversation
+        )
+        
         dispute.result = analysis.model_dump()
         dispute.status = "completed"
         db.commit()
