@@ -18,6 +18,7 @@ from langchain_community.document_loaders.image import UnstructuredImageLoader
 from PIL import Image
 from PIL.ExifTags import TAGS
 from image_processor import sort_images_chronologically
+from models import OverreactionInputState, OverreactionOutput
 
 # Load environment variables
 load_dotenv()
@@ -187,4 +188,47 @@ async def async_result(person1:str, person2:str, conversation:str=""):
 
 def result(person1:str, person2:str, conversation:str=""):
     return asyncio.run(async_result(person1, person2, conversation))
+
+async def analyze_overreaction(name: str, context: str, conversation: str) -> OverreactionOutput:
+    """
+    Analyzes whether a person is overreacting in a conversation.
+    """
+    # Define LLM
+    llm = ChatOpenAI(model="gpt-4")
+    
+    # Create system message for overreaction analysis
+    sys_msg = SystemMessage(content="""You are an expert in emotional intelligence and conflict resolution. 
+    Analyze the provided conversation to determine if the specified person is overreacting.
+    Consider:
+    1. The severity of the situation vs. their response
+    2. The emotional language and tone used
+    3. Whether their reaction is proportional to the trigger
+    4. Any cognitive distortions present
+    5. The context and relationship dynamics
+    6. The background context of the situation
+    
+    Provide a structured analysis with:
+    - Whether they're overreacting (true/false)
+    - Confidence score (0-100)
+    - Detailed explanation
+    - Key triggering phrases/moments
+    - Suggested alternative responses
+    - Assessment of their emotional state
+    """)
+    
+    # Format the conversation for analysis
+    analysis_prompt = f"""
+    Person to analyze: {name}
+    
+    Situation Context:
+    {context}
+    
+    Conversation:
+    {conversation}
+    """
+    
+    # Get LLM response with structured output
+    return llm.with_structured_output(OverreactionOutput).invoke(
+        [sys_msg, HumanMessage(content=analysis_prompt)]
+    )
 

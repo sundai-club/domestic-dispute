@@ -18,3 +18,4 @@ class Dispute(Base):
     
     result = Column(JSON, nullable=True)
     error = Column(String, nullable=True)
+    analysis_type = Column(String, default="dispute")
