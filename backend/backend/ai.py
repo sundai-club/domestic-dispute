@@ -7,18 +7,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from models import ArgumentResult, ArgumentState
+from langchain_anthropic import ChatAnthropic
+from models import HWInputState, HWOverallState, AnalysisOutput, FinalOutputState
+from models import LogicalOutput, TonalOutput, VolumeOutput, PersonalAttackOutput
 from pydantic import BaseModel, field_validator, ValidationError
 from langgraph.graph import START, StateGraph, MessagesState, END
 from langchain_core.output_parsers import PydanticOutputParser
-from models import ArgumentResult, ArgumentState, DisputeRequest
 from langchain_core.utils.function_calling import convert_to_openai_function
 from langchain_community.document_loaders.image import UnstructuredImageLoader
 from PIL import Image
 from PIL.ExifTags import TAGS
 from image_processor import sort_images_chronologically
 
-# TODO: This whole thing should be in a function that takes in the conversation as a string and returns the winner of the argument
+# Load environment variables
 load_dotenv()
 
 def _set_env(var: str):
@@ -30,7 +31,7 @@ _set_env("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "langchain-academy"
 
-async def async_result(person1:dict, person2:dict, conversation:str=""):
+async def async_result(person1:str, person2:str, conversation:str=""):
     """
     Inputs-
         person1 {'name':'', 'context':''}
@@ -46,82 +47,124 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
     for msg in convo_msgs:
         messages.append(HumanMessage(content=msg))
 
-    # Load environment variables
-    #load_dotenv()
     # Define LLM with bound tools
     llm = ChatOpenAI(model="gpt-4o-2024-11-20")
-    # llm_with_tools = llm.bind_tools(tools)
 
-    # System messages
-    distributor_msg = SystemMessage(content="You are the distributor of messages. You distribute messages to the logical judge, tonal judge, count judge, and personal attack judge.")
-    logical_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "logical_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    tonal_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "tonal_judge_msg.txt").read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    count_judge_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "count_judge_msg.txt").read())
-    personal_attack_judge_msg = SystemMessage(content=open((Path(__file__).parent / "instructions" / "personal_attack_judge_msg.txt")).read().format(context1=person1["context"], context2=person2["context"], person1 = person1["name"], person2 = person2["name"]))
-    final_arbiter_msg = SystemMessage(
-        content=open(Path(__file__).parent / "instructions" / "final_arbiter_msg.txt").read().format(
-            context1=person1["context"], 
-            context2=person2["context"], 
-            person1=person1["name"], 
-            person2=person2["name"]
-        )
-    )
+
+    ########################
+    ### Nodes ###
+    ########################
 
     # Node
-    def distributor(state: MessagesState):     
-        # print("---distributor---")
-        return {"messages": [llm.invoke([distributor_msg] + state["messages"])]}
+    def distributor(state: HWInputState):
+        return state
 
     # Node
-    def logical_judge(state: MessagesState):
-        # print("---logical judge---")
-        return {"messages": [llm.invoke([logical_judge_msg] + state["messages"])]}
+    def logical_judge(state: HWOverallState):
+        sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "logical_judge_msg.txt").read().format(
+            name1 = state.name1,
+            name2 = state.name2
+        ))
+
+        llm_output = llm.with_structured_output(LogicalOutput).invoke([sys_msg] + [state.conversation])
+
+        state.name1 = None
+        state.name2 = None
+        state.conversation = None
+        state.name1_logical_score = llm_output.name1_logical_score
+        state.name1_logical_explanation = llm_output.name1_logical_explanation
+        state.name2_logical_score = llm_output.name2_logical_score
+        state.name2_logical_explanation = llm_output.name2_logical_explanation
+
+        return state
 
     # Node
-    def tonal_judge(state: MessagesState):
-        # print("---tonal judge---")
-        return {"messages": [llm.invoke([tonal_judge_msg] + state["messages"])]}
+    def tonal_judge(state: HWOverallState):
+        sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "tonal_judge_msg.txt").read().format(
+            name1 = state.name1,
+            name2 = state.name2
+        ))
+
+        llm_output = llm.with_structured_output(TonalOutput).invoke([sys_msg] + [state.conversation])
+
+        state.name1 = None
+        state.name2 = None
+        state.conversation = None
+        state.name1_tonality = llm_output.name1_tonality
+        state.name1_tonality_explanation = llm_output.name1_tonality_explanation
+        state.name2_tonality = llm_output.name2_tonality
+        state.name2_tonality_explanation = llm_output.name2_tonality_explanation
+
+        return state
 
     # Node
-    def count_judge(state: MessagesState):
-        # print("---count judge---")
-        return {"messages": [llm.invoke([count_judge_msg] + state["messages"])]}
+    def volume_judge(state: HWOverallState):
+        sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "volume_judge_msg.txt").read().format(
+            name1 = state.name1,
+            name2 = state.name2
+        ))
+
+        llm_output = llm.with_structured_output(VolumeOutput).invoke([sys_msg] + [state.conversation])
+
+        state.name1 = None
+        state.name2 = None
+        state.conversation = None
+        state.name1_word_count = llm_output.name1_word_count
+        state.name2_word_count = llm_output.name2_word_count
+        state.name1_volume_percentage = (llm_output.name1_word_count / (llm_output.name1_word_count + llm_output.name2_word_count)) * 100
+        state.name2_volume_percentage = (llm_output.name2_word_count / (llm_output.name1_word_count + llm_output.name2_word_count)) * 100
+
+        return state
 
     # Node
-    def personal_attack_judge(state: MessagesState):
-        # print("---personal attack judge---")
-        return {"messages": [llm.invoke([personal_attack_judge_msg] + state["messages"])]}
+    def personal_attack_judge(state: HWOverallState):
+        sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "personal_attack_judge_msg.txt").read().format(
+            name1 = state.name1,
+            name2 = state.name2
+        ))
 
-    argument_result_schema = {
-        "name": "get_argument_result",
-        "description": "Get the final result of the argument analysis",
-        "parameters": ArgumentResult.model_json_schema()
-    }
+        llm_output = llm.with_structured_output(PersonalAttackOutput).invoke([sys_msg] + [state.conversation])
 
-    def final_arbiter(state: MessagesState):
-        response = llm.invoke(
-            [final_arbiter_msg] + state["messages"],
-            functions=[argument_result_schema],
-            function_call={"name": "get_argument_result"}
-        )
-        
-        try:
-            function_call = response.additional_kwargs["function_call"]
-            result = json.loads(function_call["arguments"])
-            parsed_response = ArgumentResult(**result)
-            return {"messages": [AIMessage(content=parsed_response.model_dump_json())]}
-        except Exception as e:
-            print(f"Parsing error: {e}")
-            print(f"Raw response: {response}")
-            raise ValueError(f"Failed to parse final arbiter response: {e}")
-    # Build graph
+        state.name1 = None
+        state.name2 = None
+        state.conversation = None
+        state.name1_personal_attacks = llm_output.name1_personal_attacks
+        state.name2_personal_attacks = llm_output.name2_personal_attacks
+
+        return state
+
+    # Node
+    def final_arbiter(state: HWOverallState) -> FinalOutputState:
+        sys_msg = SystemMessage(content=open(Path(__file__).parent / "instructions" / "final_arbiter_msg.txt").read().format(
+            name1 = state.name1,
+            name2 = state.name2
+        ))
+
+        if isinstance(llm, ChatOpenAI):
+            msg_dict = {
+                "role": "assistant",
+                "content": json.dumps(state.model_dump(exclude={'conversation'}))
+            }
+        elif isinstance(llm, ChatAnthropic):
+            msg_dict = [
+                {"role": "user", "content": json.dumps(state.model_dump(exclude={'conversation'}))}
+            ]
+
+        return llm.with_structured_output(FinalOutputState).invoke([sys_msg] + [msg_dict])
     builder = StateGraph(MessagesState)
+
+    ########################
+    ### Graph ###
+    ########################
+
+    # Build graph
+    builder = StateGraph(HWOverallState, input=HWInputState, output=FinalOutputState)
 
     # Add nodes
     builder.add_node("distributor", distributor)
     builder.add_node("logical_judge", logical_judge)
     builder.add_node("tonal_judge", tonal_judge)
-    builder.add_node("count_judge", count_judge)
+    builder.add_node("volume_judge", volume_judge)
     builder.add_node("personal_attack_judge", personal_attack_judge)
     builder.add_node("final_arbiter", final_arbiter)
 
@@ -129,37 +172,19 @@ async def async_result(person1:dict, person2:dict, conversation:str=""):
     builder.add_edge(START, "distributor")
     builder.add_edge("distributor", "logical_judge")
     builder.add_edge("distributor", "tonal_judge")
-    builder.add_edge("distributor", "count_judge")
+    builder.add_edge("distributor", "volume_judge")
     builder.add_edge("distributor", "personal_attack_judge")
 
-    builder.add_edge("logical_judge", "final_arbiter")
-    builder.add_edge("tonal_judge", "final_arbiter")
-    builder.add_edge("count_judge", "final_arbiter")
-    builder.add_edge("personal_attack_judge", "final_arbiter")
+    builder.add_edge(["logical_judge", "tonal_judge", "volume_judge", "personal_attack_judge"], "final_arbiter")
     builder.add_edge("final_arbiter", END)
 
     # Compile graph
     graph = builder.compile()
 
     # Invokation
-    messages = graph.invoke({"messages": messages})
-    result = []
-    for m in messages['messages']: 
-        result.append(m)
+    return graph.invoke({"name1": person1, "name2": person2, "conversation": conversation})
 
-    # Validate JSON output
-    try:
-        output = result[-1].content
-        json_output = json.loads(output)
-        validated_output = ArgumentResult(**json_output)
-        return validated_output
-        
-    except json.JSONDecodeError:
-        print(output)
-        raise ValueError("Output is not valid JSON")
-    except ValidationError as e:
-        raise ValueError(f"Invalid output format: {str(e)}")
 
-def result(person1:dict, person2:dict, conversation:str=""):
+def result(person1:str, person2:str, conversation:str=""):
     return asyncio.run(async_result(person1, person2, conversation))
 

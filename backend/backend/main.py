@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
-from models import DisputeRequest
+from models import HWInputState
 from ai import result, async_result  # You'll implement this in ai.py
 from database import SessionLocal, Dispute, init_db  # Updated this line
 from tasks import process_dispute  # Add this import
@@ -29,27 +29,19 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/api/analyze-dispute")
-async def analyze_dispute(request: DisputeRequest):
+async def analyze_dispute(request: HWInputState):
     try:
-        person1 = {
-            "name":request.party_one_name,
-            "context":request.context1
-        }
-        person2 = {
-            "name":request.party_two_name,
-            "context":request.context2
-        }
         analysis = await async_result(
-            conversation=request.text,
-            person1=person1,
-            person2= person2,
+            conversation=request.conversation,
+            person1=request.name1,
+            person2=request.name2,
         )
         return analysis
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/store-dispute")
-async def analyze_dispute(request: DisputeRequest):
+async def analyze_dispute(request: HWInputState):
     # Create DB session
     print(f"Request received")
     db = SessionLocal()
@@ -58,8 +50,8 @@ async def analyze_dispute(request: DisputeRequest):
         dispute = Dispute(
             party_one_name=request.party_one_name,
             party_two_name=request.party_two_name,
-            context1=request.context1,
-            context2=request.context2,
+            #context1=request.context1,
+            #context2=request.context2,
             conversation=request.text,
             status="pending"
         )

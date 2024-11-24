@@ -199,7 +199,7 @@ def extract_text_with_metadata(paths):
                 Do not repeat content in the case of overlapping messages, but use the overlap as a guide to determine the correct order.
 
                 Timestamps and content:
-                {'\n'.join([f'[{data["timestamp"]}]:\n{data["text"]}' for data in image_data])}
+                {''.join([f'[{data["timestamp"]}]:{data["text"]}' for data in image_data])}
                 
                 Please format the output as a conversation between two people, with each message on 
                 a new line starting with the sender's name. Use 'sender' for party 1 and extract 
@@ -212,4 +212,7 @@ def extract_text_with_metadata(paths):
     final_response = llm.invoke([context_message])
     return final_response.content
 
-print(extract_text_with_metadata(["IMG_0145.PNG", "IMG_0144.PNG"]))
+
+
+#print(extract_text_with_metadata(["IMG_0145.PNG", "IMG_0144.PNG"]))
+

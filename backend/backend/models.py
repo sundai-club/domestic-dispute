@@ -4,44 +4,85 @@ from sqlalchemy import Column, Integer, String, JSON, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
 
-class ArgumentState(BaseModel):
+########################
+### Pydantic Graph Classes ###
+########################
+
+class HWInputState(BaseModel):
     name1: str
     name2: str
-    context1: str
-    context2: str
     conversation: str
 
-class ArgumentResult(BaseModel):
-    winner: str
-    winner_logical_score: int
-    winner_tonality: str
-    winner_count: int
-    winner_personal_attacks: Dict[str, Union[List, int]]
-    winner_explanation: str
-    loser: str
-    loser_logical_score: int
-    loser_tonality: str
-    loser_count: int
-    loser_personal_attacks: Dict[str, Union[List, int]]
-    loser_explanation: str
+class HWOverallState(BaseModel):
+    name1: str
+    name2: str
+    conversation: str
+    name1_logical_score: Optional[int] = None
+    name1_logical_explanation: Optional[str] = None
+    name2_logical_score: Optional[int] = None
+    name2_logical_explanation: Optional[str] = None
+    name1_tonality: Optional[str] = None
+    name1_tonality_explanation: Optional[str] = None
+    name2_tonality: Optional[str] = None
+    name2_tonality_explanation: Optional[str] = None
+    name1_word_count: Optional[int] = None
+    name1_volume_percentage: Optional[float] = None
+    name2_word_count: Optional[int] = None
+    name2_volume_percentage: Optional[float] = None
+    name1_personal_attacks: Optional[List[str]] = None
+    name2_personal_attacks: Optional[List[str]] = None
 
-    @field_validator('winner_logical_score')
+    @field_validator('name1_logical_score', 'name2_logical_score')
     @classmethod
-    def validate_winner_logical_score(cls, value):
+    def validate_logical_score(cls, value):
         if not 0 <= value <= 100:
             raise ValueError("Logical score must be between 0 and 100")
         return value
     
-    @field_validator('loser_logical_score')
-    @classmethod
-    def validate_loser_logical_score(cls, value):
-        if not 0 <= value <= 100:
-            raise ValueError("Logical score must be between 0 and 100")
-        return value
+class AnalysisOutput(BaseModel):
+    name: str
+    explanation: str
+    logical_score: int
+    logical_explanation: str
+    tonality: str
+    tonality_explanation: str
+    word_count: int
+    volume_percentage: float
+    personal_attacks: List[str]
 
-class DisputeRequest(BaseModel):
-    text: str  # The entire conversation as a single text block
-    party_one_name: str
-    party_two_name: str
-    context1: str  # Party one's context
-    context2: str  # Party two's context
+class FinalOutputState(BaseModel):
+    winner: AnalysisOutput
+    loser: AnalysisOutput
+
+
+########################
+### Output Classes ###
+########################
+
+class LogicalOutput(BaseModel):
+    name1: str
+    name2: str
+    name1_logical_score: int
+    name1_logical_explanation: str
+    name2_logical_score: int
+    name2_logical_explanation: str
+    
+class TonalOutput(BaseModel):
+    name1: str
+    name2: str
+    name1_tonality: str
+    name1_tonality_explanation: str
+    name2_tonality: str
+    name2_tonality_explanation: str
+
+class VolumeOutput(BaseModel):
+    name1: str
+    name2: str
+    name1_word_count: int
+    name2_word_count: int
+
+class PersonalAttackOutput(BaseModel):
+    name1: str
+    name2: str
+    name1_personal_attacks: List[str]
+    name2_personal_attacks: List[str]
