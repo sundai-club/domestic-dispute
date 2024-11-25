@@ -17,8 +17,8 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isStoring, setIsStoring] = useState(false)
 
-  const STAGE = process.env.stage || 'prod'; 
-  console.log(process.env.stage)
+  const STAGE = process.env.stage === undefined ? 'prod' : 'dev'; 
+  console.log("stage: " + STAGE)
 
   const BACKEND_URL =
     STAGE === 'prod'
@@ -28,7 +28,7 @@ export default function Dashboard() {
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
     try {
-      const response = await axios.post('/api/analyze-dispute', {
+      const response = await axios.post(`${BACKEND_URL}/api/analyze-dispute`, {
         name1: partyOneName,
         name2: partyTwoName,
         conversation: text,
@@ -44,6 +44,8 @@ export default function Dashboard() {
         analysis = typeof response.data === 'string' 
           ? JSON.parse(response.data)
           : response.data;
+
+      console.log("analysis"+ analysis)
       } catch (parseError) {
         // If parsing fails, create a basic response
         analysis = {
