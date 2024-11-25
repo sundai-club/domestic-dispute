@@ -17,9 +17,13 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isStoring, setIsStoring] = useState(false)
 
-  const STAGE = process.env.stage === null ? 'prod' : 'dev';
-  const BACKEND_URL = STAGE === 'prod' ? "https://domestic-dispute-199983032721.us-central1.run.app" 
-  : "http://localhost:8000"
+  const STAGE = process.env.stage || 'prod'; 
+  console.log(process.env.stage)
+
+  const BACKEND_URL =
+    STAGE === 'prod'
+      ? "https://domestic-dispute-199983032721.us-central1.run.app"
+      : "http://localhost:8000";
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
@@ -82,7 +86,7 @@ export default function Dashboard() {
 
     try {
       // Call the API
-      const response = await axios.post(BACKEND_URL, formData, {
+      const response = await axios.post(`${BACKEND_URL}/api/upload-image`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
