@@ -84,7 +84,7 @@ export default function Dashboard() {
       formData.append('files', file);
     });
 
-    setIsLoading(true);
+    setIsLoading(true); // Show loading screen
 
     try {
       // Call the API
@@ -100,7 +100,7 @@ export default function Dashboard() {
       console.error('Error uploading files:', error);
       alert('Failed to process the files. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Hide loading screen
     }
   };
 
@@ -197,6 +197,17 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 text-white">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8 animate-pulse">Dispute Analysis Dashboard</h1>
+
+        {/* Loading Screen for File Upload */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 text-center">
+              <div className="animate-spin-slow rounded-full h-32 w-32 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-xl font-semibold text-blue-500">Uploading your files...</p>
+              <p className="text-gray-600">Please wait while we process your images.</p>
+            </div>
+          </div>
+        )}
         
         {!showReport ? (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
